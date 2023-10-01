@@ -1,7 +1,7 @@
 import { check, validationResult } from 'express-validator'
 import bcrypt from 'bcrypt'
 import Usuario from "../models/Usuario.js"
-import { generarId } from '../helpers/tokens.js'
+import { generarJWt, generarId } from '../helpers/tokens.js'
 import { emailRegistro, emailOlvidePassword } from '../helpers/emails.js'
 
 const formularioLogin = (req, res) => {
@@ -22,13 +22,56 @@ const autenticar = async (req, res) => {
         //Errores
 
         return res.render('auth/login', {
-            pagina: 'Iniciar session',
+            pagina: 'Iniciar Sesion',
             csrfToken: req.csrfToken(),
             errores: resultado.array()
         })
 
     }
 
+    const {email, password} =req.body;
+
+    //COmprobar si existe
+
+    const usuario = await Usuario.findOne({where: {email}})
+    if(!usuario){
+        return res.render('auth/login', {
+            pagina: 'Iniciar Sesion',
+            csrfToken: req.csrfToken(),
+            errores: [{msg: 'El Usuario no existe'}]
+        })
+    }
+
+    //COmprobar si esta confirmado
+
+    if(!usuario.confirmado){
+        return res.render('auth/login', {
+            pagina: 'Iniciar Sesion',
+            csrfToken: req.csrfToken(),
+            errores: [{msg: 'Tu cuenta no ha sido confirmada'}]
+        })
+    }
+
+    //Revisar el password
+
+    if(!usuario.verificarPassword(password)) {
+        return res.render('auth/login', {
+            pagina: 'Iniciar Sesion',
+            csrfToken: req.csrfToken(),
+            errores: [{msg: 'El Password es incorrecto' }]
+        })
+    }
+
+    //Autenticar al usuario
+    const token = generarJWt({ id: usuario.id, nombre: usuario.nombre })
+
+    //Almarcenar jwt en cookie
+
+    return res.cookie('_token', token, {
+        httpOnly: true,
+        //secure: true,
+        //sameSite: true
+    }).redirect('/mis-propiedades')
 
 }
 
@@ -36,7 +79,6 @@ const formularioRegistro = (req, res) => {
     res.render('auth/registro', {
         pagina: 'Crear cuenta',
         csrfToken: req.csrfToken()
-
     })
 }
 
@@ -83,6 +125,7 @@ const registrar = async (req, res) => {
     }
 
     //Almacenar usuario
+
 
     const usuario = await Usuario.create({
         nombre,

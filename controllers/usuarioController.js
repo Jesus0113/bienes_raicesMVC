@@ -52,6 +52,8 @@ const autenticar = async (req, res) => {
         })
     }
 
+   
+
     //Revisar el password
 
     if(!usuario.verificarPassword(password)) {
@@ -72,6 +74,13 @@ const autenticar = async (req, res) => {
         //secure: true,
         //sameSite: true
     }).redirect('/mis-propiedades')
+
+}
+
+//Cerrar sesion
+const cerrarSesion = (req,res) => {
+
+    return res.clearCookie('_token').status(200).redirect('/auth/login')
 
 }
 
@@ -200,7 +209,7 @@ const resetPassword = async (req, res) => {
         //Errores
 
         return res.render('auth/olvide-password', {
-            pagina: 'Recuperar tu acceso a Bienes Raices',
+            pagina: 'Recuperar tu acceso a inmobiliaria',
             csrfToken: req.csrfToken(),
             errores: resultado.array()
         })
@@ -304,9 +313,12 @@ const nuevoPassword = async (req, res) => {
 
 }
 
+
+
 export {
     formularioLogin,
     autenticar,
+    cerrarSesion,
     formularioRegistro,
     registrar,
     confirmar,
